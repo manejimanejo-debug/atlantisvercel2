@@ -32,6 +32,10 @@ s.parentNode.insertBefore(t,s);
 'https://connect.facebook.net/en_US/fbevents.js');
 
 fbq('init', '1598049584620386');
+
+
+
+fbq('track', 'PageView');
 fbq('track', 'PageView');
 
 </script>
@@ -538,19 +542,53 @@ ATENCIÓN Y RETIROS SIN LIMITES LAS 24 HS
 <script>
 
 const whatsappNumbers = [
-"5491176393811",
-"5491176390952"
+"5491127976668"
 ];
 
-let currentIndex =
-parseInt(localStorage.getItem("wa_index")) || 0;
+// ROTA CADA 5 MINUTOS
+const rotationTime = 5 * 60 * 1000;
+
+const savedData =
+JSON.parse(localStorage.getItem("wa_rotation")) || {
+index: 0,
+timestamp: Date.now()
+};
+
+let currentIndex = savedData.index;
+let lastRotation = savedData.timestamp;
+
+// SI PASARON 5 MINUTOS → CAMBIA
+if(Date.now() - lastRotation >= rotationTime){
+
+currentIndex =
+(currentIndex + 1) %
+whatsappNumbers.length;
+
+lastRotation = Date.now();
+
+localStorage.setItem(
+"wa_rotation",
+JSON.stringify({
+index: currentIndex,
+timestamp: lastRotation
+})
+);
+
+}
 
 const button =
 document.getElementById("whatsapp-button");
 
+// BLOQUEO DOBLE CLICK
+let processing = false;
+
 button.addEventListener("click", function(e){
 
 e.preventDefault();
+
+if(processing) return;
+
+processing = true;
 
 const currentNumber =
 whatsappNumbers[currentIndex];
@@ -560,15 +598,29 @@ const message = encodeURIComponent(
 );
 
 // LEAD
-fbq('track', 'Lead');
+fbq(
+'track',
+'Lead',
+{},
+{
+eventID: 'lead_' + Date.now()
+}
+);
 
 // PURCHASE
-fbq('track', 'Purchase', {
+fbq(
+'track',
+'Purchase',
+{
 value: 1,
 currency: 'USD'
-});
+},
+{
+eventID: 'purchase_' + Date.now()
+}
+);
 
-// ESPERA
+// ABRIR WHATSAPP
 setTimeout(() => {
 
 const dynamicUrl =
@@ -576,17 +628,11 @@ const dynamicUrl =
 
 window.open(dynamicUrl, "_blank");
 
+setTimeout(() => {
+processing = false;
+}, 1500);
+
 }, 500);
-
-// ROTACIÓN
-currentIndex =
-(currentIndex + 1) %
-whatsappNumbers.length;
-
-localStorage.setItem(
-"wa_index",
-currentIndex
-);
 
 });
 
